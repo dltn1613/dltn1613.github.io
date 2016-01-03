@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+
+		<style>
+		body {margin: 0;}
+		svg {display: block;}
+
+		.agent.selected {
+			stroke-width: 2px;
+			stroke: #00FF00;
+		}
+		.tile.selectable {
+			stroke-width: 2px;
+			stroke: #00FF00;
+		}
+
+		</style>
+		<script type="text/javascript" src="../d3/d3.min.js"></script>
+	</head>
+	<body>
+		<svg>
+			<g class="tiles"></g>
+			<g class="agents"></g>
+		</svg>
+
+		<script type="text/javascript">
+		var CFG = {
+			W_TILE: 8,
+			H_TILE: 8
+		}
+
+		var rawTile = [
+			'........',
+			'........',
+			'....X...',
+			'....X...',
+			'........',
+			'..XX....',
+			'........',
+			'........'
+		].join('')
+
+		var touchable = 'ontouchstart' in window
+
+		var tiles = Array.prototype.map.call(rawTile, function(d, i) {
+			return {
+				value: d,
+				x: i % CFG.W_TILE,
+				y: Math.floor(i / CFG.W_TILE)
+			}
+		})
+		var agents = [
+			{
+				type: 'player',
+				key: 0,
+				x: 1,
+				y: 1
+			},
+			{
+				type: 'food',
+				key: 1,
+				x: 2,
+				y: 3
+			},
+			{
+				type: 'food',
+				key: 2,
+				x: 4,
+				y: 6
+			},
+			{
+				type: 'food',
+				key: 3,
+				x: 1,
+				y: 7
+			}
+		]
+
+		var len = 1
+		var lenScale = d3.scale.ordinal()
+			.domain(d3.range(CFG.W_TILE))
+		var agentScale = d3.scale.ordinal()
+			.domain(d3.range(CFG.W_TILE))
+		var tileColorScale = d3.scale.ordinal()
+			.domain(['.', 'X'])
+			.range(['#DDD', 'black'])
+		var agentColorScale = d3.scale.ordinal()
+			.domain(['player', 'food'])
+			.range(['green', 'steelblue'])
+		var selectedAgent = null
+
+		function main() {
+			resize()
+		}
+
+		function resize() {
+			len = Math.min(window.innerHeight, window.innerWidth)
+			lenScale
+				.rangeRoundBands([0, len], 0.1)
+
+			d3.select('svg')
+				.attr('width', len)
+				.attr('height', len)
+			redraw()
+		}
+
+		function redraw() {
+			var tilesEl = d3.select('svg .tiles').selectAll('rect').data(tiles)
+			tilesEl.enter()
+				.append('rect')
+				.attr('x', function(d) {return lenScale(d.x)})
+				.attr('y', function(d) {return lenScale(d.y)})
+				.attr('width', lenScale.rangeBand())
+				.attr('height', lenScale.rangeBand())
+				.on(touchable ? 'touchstart' : 'click', onTileClick)
+			tilesEl
+				.attr('class', function(d) {
+					var selectable = isSelectableTile(d) ? 'selectable' : ''
+					return 'tile ' + selectable
+				})
+				.attr('x', function(d) {return lenScale(d.x)})
+				.attr('y', function(d) {return lenScale(d.y)})
+				.attr('width', lenScale.rangeBand())
+				.attr('height', lenScale.rangeBand())
+				.attr('fill', function(d) {return tileColorScale(d.value)})
+			tilesEl.exit()
+				.remove()
+
+			var agentsEl = d3.select('svg .agents').selectAll('circle').data(agents, function(d) {return d.key})
+			agentsEl.enter()
+				.append('circle')
+				.attr('cx', function(d) {return lenScale(d.x) + lenScale.rangeBand() * 0.5})
+				.attr('cy', function(d) {return lenScale(d.y) + lenScale.rangeBand() * 0.5})
+				.attr('r', lenScale.rangeBand() * 0.4)
+				.attr('opacity', 1.0)
+				.on(touchable ? 'touchstart' : 'click', onAgentClick)
+			agentsEl
+				.attr('class', function(d) {
+					var selected = d === selectedAgent ? 'selected' : ''
+					return 'agent ' + d.type + ' ' + selected
+				})
+				.transition()
+				.attr('cx', function(d) {return lenScale(d.x) + lenScale.rangeBand() * 0.5})
+				.attr('cy', function(d) {return lenScale(d.y) + lenScale.rangeBand() * 0.5})
+				.attr('r', lenScale.rangeBand() * 0.4)
+				.attr('fill', function(d) {return agentColorScale(d.type)})
+
+			agentsEl.exit()
+				.transition()
+				.duration(1000)
+				.attr('opacity', 0.0)
+				.attr('r', lenScale.rangeBand() * 1)
+				.remove()
+		}
+
+		function onAgentClick(agent) {
+			if(agent.type === 'food') {
+				if(selectedAgent === null) return
+
+				if(Math.abs(selectedAgent.x - agent.x) + Math.abs(selectedAgent.y - agent.y) === 1) {
+					selectedAgent.x = agent.x
+					selectedAgent.y = agent.y
+					agents = agents.filter(function(d) {return d !== agent})
+				} else {
+					return
+				}
+			} else {
+				if(agent === selectedAgent) {
+					selectedAgent = null
+				} else {
+					selectedAgent = agent
+				}
+			}
+			redraw()
+		}
+
+		function onTileClick(tile) {
+			if(!isSelectableTile(tile)) return
+
+			selectedAgent.x = tile.x
+			selectedAgent.y = tile.y
+			redraw()
+		}
+
+		function isSelectableTile(tile) {
+			if(selectedAgent === null) return false
+			if(tile.value === 'X') return false
+
+			return Math.abs(selectedAgent.x - tile.x) + Math.abs(selectedAgent.y - tile.y) === 1
+		}
+
+		window.addEventListener('load', main)
+		window.addEventListener('resize', resize)
+		</script>
+	</body>
+</html>

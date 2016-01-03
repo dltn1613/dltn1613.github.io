@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+		div {
+			color: white;
+			margin: 1px;
+		}
+		</style>
+		<script type="text/javascript" src="../d3/d3.min.js"></script>
+		<script type="text/javascript">
+		var people = [
+			{
+				name: 'A',
+				weight: 50,
+				height: 150
+			},
+			{
+				name: 'B',
+				weight: 60,
+				height: 160
+			},
+			{
+				name: 'C',
+				weight: 70,
+				height: 175
+			}
+		]
+
+		function update() {
+			var elements = d3.select('svg').selectAll('circle').data(people)
+			elements.enter()
+				.append('circle')
+				.attr('cx', 50)
+				.attr('cy', function(d, i) {return i * 30 + 50})
+				.attr('r', 0)
+				.attr('fill', 'white')
+				.transition()
+				.duration(5000)
+				.attr('cx', 200)
+				.attr('cy', function(d, i) {return i * 30 + 50})
+				.attr('r', function(d) {return d.height * 0.2;})
+				.attr('fill', function(d) {
+					var color = 255 - d.weight
+					return 'rgb(' + color + ', ' + color + ', 255)'
+				})
+			elements
+				.transition()
+				.attr('r', function(d) {return d.height * 0.2;})
+				.attr('fill', function(d) {
+					var color = 255 - d.weight
+					return 'rgb(' + color + ', ' + color + ', 255)'
+				})
+			elements.exit()
+				.remove()
+		}
+		</script>
+	</head>
+	<body>
+		<svg>
+		</svg>
+	</body>
+</html>
